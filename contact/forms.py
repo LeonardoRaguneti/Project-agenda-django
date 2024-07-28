@@ -1,28 +1,22 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 from contact.models import Contact
 
 
 class ContactForm(forms.ModelForm):
-    first_name = forms.CharField(                     # se isto form comentado ele usara o que esta no models.py
-        widget=forms.TextInput(
-            attrs={
-                'class': 'classe-a classe-b',
-                'placeholder': 'Aqui veio do init',
-            }
-        ),
-        label='Primeiro Nome',
-        help_text='Texto de ajuda para seu usuário',
+    picture = forms.ImageField(widget=forms.FileInput(
+        attrs={
+            'accept': 'image/*',
+        })
     )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
 
     class Meta:
         model = Contact
         fields = ('first_name', 'last_name', 'phone',
-                  'email', 'description', 'category')
+                  'email', 'description', 'category',
+                  'picture')
 
 
     def clean(self):                                       # ideal para validação de mais de um valor.
@@ -51,3 +45,24 @@ class ContactForm(forms.ModelForm):
         )
 
         return first_name
+
+
+class RegisterForm(UserCreationForm):
+    first_name = forms.CharField(required=True, min_length=3)
+    last_name = forms.CharField(required=True, min_length=3)
+    email = forms.EmailField()
+
+    class Meta:
+        model = User
+        fields = (
+            'first_name', 'last_name', 'email', 'username',
+            'password1', 'password2'
+        )
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+
+        if User.objects.filter(email=email).exists():
+            self.add_error('email', ValidationError('Email já existe', code='invalid'))
+        
+        return email
